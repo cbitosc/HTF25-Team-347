@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EcoTrack Diagnostics</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f9fafb;
+        }
+        .section {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .ok { background: #dcfce7; color: #166534; }
+        .warn { background: #fef3c7; color: #92400e; }
+        .error { background: #fee2e2; color: #991b1b; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+        pre {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 EcoTrack System Diagnostics</h1>
+    
+    <div class="section">
+        <h2>1. Browser Storage Status</h2>
+        <div id="storage-status"></div>
+        <button onclick="checkStorage()">Check Storage</button>
+        <button onclick="clearAllStorage()">Clear All Storage</button>
+    </div>
+
+    <div class="section">
+        <h2>2. Authentication Status</h2>
+        <div id="auth-status"></div>
+        <button onclick="checkAuth()">Check Auth</button>
+    </div>
+
+    <div class="section">
+        <h2>3. Supabase Connection</h2>
+        <div id="supabase-status"></div>
+        <button onclick="checkSupabase()">Test Connection</button>
+    </div>
+
+    <div class="section">
+        <h2>4. Quick Actions</h2>
+        <button onclick="window.location.href='/auth'">Go to Sign In</button>
+        <button onclick="window.location.href='/'">Go to Home</button>
+        <button onclick="location.reload()">Reload Page</button>
+    </div>
+
+    <script>
+        function checkStorage() {
+            const output = document.getElementById('storage-status');
+            let html = '';
+            
+            // Check localStorage
+            const localStorageKeys = Object.keys(localStorage);
+            html += `<div class="status ${localStorageKeys.length > 0 ? 'warn' : 'ok'}">`;
+            html += `<strong>localStorage:</strong> ${localStorageKeys.length} items<br>`;
+            if (localStorageKeys.length > 0) {
+                html += '<small>Keys: ' + localStorageKeys.join(', ') + '</small>';
+            } else {
+                html += '<small>✅ Empty (Good!)</small>';
+            }
+            html += '</div>';
+            
+            // Check sessionStorage
+            const sessionStorageKeys = Object.keys(sessionStorage);
+            html += `<div class="status ${sessionStorageKeys.length > 0 ? 'warn' : 'ok'}">`;
+            html += `<strong>sessionStorage:</strong> ${sessionStorageKeys.length} items<br>`;
+            if (sessionStorageKeys.length > 0) {
+                html += '<small>Keys: ' + sessionStorageKeys.join(', ') + '</small>';
+            } else {
+                html += '<small>✅ Empty (Good!)</small>';
+            }
+            html += '</div>';
+            
+            // Check cookies
+            const cookies = document.cookie.split(';').filter(c => c.trim());
+            html += `<div class="status ${cookies.length > 0 ? 'warn' : 'ok'}">`;
+            html += `<strong>Cookies:</strong> ${cookies.length} items<br>`;
+            if (cookies.length > 0) {
+                html += '<small>' + cookies.map(c => c.split('=')[0].trim()).join(', ') + '</small>';
+            }
+            html += '</div>';
+            
+            output.innerHTML = html;
+        }
+
+        function clearAllStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            alert('✅ All storage cleared! Page will reload.');
+            location.reload();
+        }
+
+        function checkAuth() {
+            const output = document.getElementById('auth-status');
+            const currentUser = localStorage.getItem('currentUser');
+            const supabaseAuth = localStorage.getItem('sb-wjozfcgsdyufgpzczgnh-auth-token');
+            
+            let html = '';
+            
+            if (!currentUser && !supabaseAuth) {
+                html += '<div class="status ok">✅ No auth data found (logged out)</div>';
+            } else {
+                if (currentUser) {
+                    html += '<div class="status warn">⚠️ Old localStorage auth detected<pre>' + currentUser + '</pre></div>';
+                }
+                if (supabaseAuth) {
+                    html += '<div class="status ok">✅ Supabase auth token found</div>';
+                }
+            }
+            
+            output.innerHTML = html;
+        }
+
+        async function checkSupabase() {
+            const output = document.getElementById('supabase-status');
+            output.innerHTML = '<div class="status">Testing...</div>';
+            
+            try {
+                // Try to fetch from a public endpoint
+                const response = await fetch('/api/health').catch(() => null);
+                
+                if (response && response.ok) {
+                    output.innerHTML = '<div class="status ok">✅ Server is running</div>';
+                } else {
+                    output.innerHTML = '<div class="status warn">⚠️ Server may not be running or API not available</div>';
+                }
+            } catch (error) {
+                output.innerHTML = '<div class="status error">❌ Error: ' + error.message + '</div>';
+            }
+        }
+
+        // Auto-check on load
+        window.onload = () => {
+            checkStorage();
+            checkAuth();
+        };
+    </script>
+</body>
+</html>
